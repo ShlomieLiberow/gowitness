@@ -149,11 +149,6 @@ func (chrome *Chrome) Screenshot(url *url.URL) ([]byte, error) {
 		options = append(options, chromedp.ProxyServer(chrome.Proxy))
 	}
 
-	//actx, acancel := chromedp.NewExecAllocator(context.Background(), options...)
-	//ctx, cancel := chromedp.NewContext(actx)
-	//defer acancel()
-	//defer cancel()
-
 	// straight from: https://github.com/chromedp/examples/blob/255873ca0d76b00e0af8a951a689df3eb4f224c3/screenshot/main.go#L54
 	var buf []byte
 	html := ""
@@ -215,8 +210,8 @@ func (chrome *Chrome) Screenshot(url *url.URL) ([]byte, error) {
 	// create context
 	actx, acancel := chromedp.NewExecAllocator(context.Background(), options...)
 	ctx, cancel := chromedp.NewContext(actx)
-	defer cancel()
 	defer acancel()
+	defer cancel()
 
 	if ctx == nil {
 		log.Println("ctx is null")
@@ -224,7 +219,7 @@ func (chrome *Chrome) Screenshot(url *url.URL) ([]byte, error) {
 
 	// force max timeout for retrieving and processing the data
 	ctx, cancel = context.WithTimeout(ctx, 7*time.Second)
-
+	defer cancel()
 	// run
 	if err := chromedp.Run(ctx, t); err != nil {
 		log.Println("chromedp.Run")
