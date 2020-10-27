@@ -3,6 +3,8 @@ package chrome
 import (
 	"context"
 	"crypto/tls"
+	"github.com/chromedp/cdproto/dom"
+	"log"
 	"math"
 	"net/http"
 	"net/url"
@@ -27,6 +29,10 @@ type Chrome struct {
 	ChromePath  string
 	Proxy       string
 }
+
+const (
+	CloudflareSel = "div.cf-browser-verification"
+)
 
 // NewChrome returns a new initialised Chrome struct
 func NewChrome() *Chrome {
@@ -143,64 +149,86 @@ func (chrome *Chrome) Screenshot(url *url.URL) ([]byte, error) {
 		options = append(options, chromedp.ProxyServer(chrome.Proxy))
 	}
 
+	//actx, acancel := chromedp.NewExecAllocator(context.Background(), options...)
+	//ctx, cancel := chromedp.NewContext(actx)
+	//defer acancel()
+	//defer cancel()
+
+	// straight from: https://github.com/chromedp/examples/blob/255873ca0d76b00e0af8a951a689df3eb4f224c3/screenshot/main.go#L54
+	var buf []byte
+	html := ""
+	// quality compression quality from range [0..100] (jpeg only).
+	quality := int64(50)
+
+	t := chromedp.Tasks{
+		chromedp.Navigate(url.String()),
+		chromedp.WaitNotPresent(CloudflareSel, chromedp.ByQuery), // cross cloudflare DDos protecting page
+		chromedp.WaitReady("body", chromedp.ByQuery),
+		chromedp.Sleep(1 * time.Second),
+		chromedp.ActionFunc(func(ctx context.Context) error {
+
+			// get full html
+			node, err := dom.GetDocument().Do(ctx)
+			if err != nil {
+				return err
+			}
+			html, err = dom.GetOuterHTML().WithNodeID(node.NodeID).Do(ctx)
+			if err != nil {
+				return err
+			}
+
+			// get layout metrics
+			_, _, contentSize, err := page.GetLayoutMetrics().Do(ctx)
+			if err != nil {
+				return err
+			}
+
+			width, height := int64(math.Ceil(contentSize.Width)), int64(math.Ceil(contentSize.Height))
+
+			// force viewport emulation
+			err = emulation.SetDeviceMetricsOverride(width, height, 1, false).
+				WithScreenOrientation(&emulation.ScreenOrientation{
+					Type:  emulation.OrientationTypePortraitPrimary,
+					Angle: 0,
+				}).
+				Do(ctx)
+			if err != nil {
+				return err
+			}
+
+			// capture screenshot
+			buf, err = page.CaptureScreenshot().
+				WithQuality(quality).
+				WithClip(&page.Viewport{
+					X:      contentSize.X,
+					Y:      contentSize.Y,
+					Width:  contentSize.Width,
+					Height: contentSize.Height,
+					Scale:  1,
+				}).Do(ctx)
+			if err != nil {
+				return err
+			}
+			return nil
+		}),
+	}
+	// create context
 	actx, acancel := chromedp.NewExecAllocator(context.Background(), options...)
 	ctx, cancel := chromedp.NewContext(actx)
-	defer acancel()
 	defer cancel()
+	defer acancel()
 
-	var buf []byte
+	if ctx == nil {
+		log.Println("ctx is null")
+	}
 
-	if chrome.FullPage {
-		// straight from: https://github.com/chromedp/examples/blob/255873ca0d76b00e0af8a951a689df3eb4f224c3/screenshot/main.go#L54
-		if err := chromedp.Run(ctx, chromedp.Tasks{
-			chromedp.Navigate(url.String()),
-			chromedp.ActionFunc(func(ctx context.Context) error {
-				// get layout metrics
-				_, _, contentSize, err := page.GetLayoutMetrics().Do(ctx)
-				if err != nil {
-					return err
-				}
+	// force max timeout for retrieving and processing the data
+	ctx, cancel = context.WithTimeout(ctx, 7*time.Second)
 
-				width, height := int64(math.Ceil(contentSize.Width)),
-					int64(math.Ceil(contentSize.Height))
-
-				// force viewport emulation
-				err = emulation.SetDeviceMetricsOverride(width, height, 1, false).
-					WithScreenOrientation(&emulation.ScreenOrientation{
-						Type:  emulation.OrientationTypePortraitPrimary,
-						Angle: 0,
-					}).Do(ctx)
-				if err != nil {
-					return err
-				}
-
-				// capture screenshot
-				buf, err = page.CaptureScreenshot().
-					WithQuality(100).
-					WithClip(&page.Viewport{
-						X:      contentSize.X,
-						Y:      contentSize.Y,
-						Width:  contentSize.Width,
-						Height: contentSize.Height,
-						Scale:  2,
-					}).Do(ctx)
-				if err != nil {
-					return err
-				}
-				return nil
-			}),
-		}); err != nil {
-			return nil, err
-		}
-
-	} else {
-		// normal viewport screenshot
-		if err := chromedp.Run(ctx, chromedp.Tasks{
-			chromedp.Navigate(url.String()),
-			chromedp.CaptureScreenshot(&buf),
-		}); err != nil {
-			return nil, err
-		}
+	// run
+	if err := chromedp.Run(ctx, t); err != nil {
+		log.Println("chromedp.Run")
+		return nil, err
 	}
 
 	return buf, nil
