@@ -218,7 +218,7 @@ func (chrome *Chrome) Screenshot(url *url.URL) ([]byte, error) {
 	}
 
 	// force max timeout for retrieving and processing the data
-	ctx, cancel = context.WithTimeout(ctx, 7*time.Second)
+	ctx, cancel = context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 	// run
 	if err := chromedp.Run(ctx, t); err != nil {
