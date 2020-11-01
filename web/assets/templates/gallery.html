@@ -1,102 +1,119 @@
 {{ define "gallery" }}
-{{ template "header" }}
-<!-- Page title -->
-<div class="page-header">
-  <div class="row align-items-center">
-    <div class="col-auto">
-      <h2 class="page-title">
-        Gallery
-      </h2>
-    </div>
-    <div class="col-auto">
-      <div class="text-muted text-h5 mt-2">{{ .Offset }}-{{ .Range }} of {{ .Count }} screenshots</div>
-    </div>
-    <!-- Page title actions -->
-    <div class="col-auto ml-auto d-print-none">
-      <div class="d-flex">
-        <div class="mr-3">
-          <form action="/gallery" method="get">
-            <div class="input-icon">
-              <input type="text" name="search" class="form-control" placeholder="Title Search…">
-              <span class="input-icon-addon">
+  {{ template "header" }}
+  <!-- Page title -->
+  <div class="page-header">
+    <div class="row align-items-center">
+      <div class="col-auto">
+        <h2 class="page-title">
+          Gallery
+        </h2>
+      </div>
+      <div class="col-auto">
+        <div class="text-muted text-h5 mt-2">{{ .Offset }}-{{ .Range }} of {{ .Count }} screenshots</div>
+      </div>
+      <!-- Page title actions -->
+      <div class="col-auto ml-auto d-print-none">
+        <div class="d-flex">
+          <div class="mr-3">
+            <form action="/gallery" method="get">
+              <div class="input-icon">
+                <input type="text" name="search" class="form-control" placeholder="Title Search…">
+                <span class="input-icon-addon">
                 <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="10" cy="10" r="7" /><line x1="21" y1="21" x2="15" y2="15" /></svg>
               </span>
-            </div>
-          </form>
-        </div>
-        {{ if .Ordered }}
-        <a href="/?perception_sort=false&limit={{ .Limit }}&page={{ .Page }}" class="btn btn-primary">
-          <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-md" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"></path><rect width="6" height="6" x="14" y="5" rx="1"></rect><line x1="4" y1="7" x2="10" y2="7"></line><line x1="4" y1="11" x2="10" y2="11"></line><line x1="4" y1="15" x2="20" y2="15"></line><line x1="4" y1="19" x2="20" y2="19"></line></svg>
-          Disable Perception Sorting
-        </a>
-        {{ else }}
-        <a href="/?perception_sort=true&limit={{ .Limit }}&page={{ .Page }}" class="btn btn-primary">
-          <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-md" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"></path><rect width="6" height="6" x="4" y="5" rx="1"></rect><line x1="14" y1="7" x2="20" y2="7"></line><line x1="14" y1="11" x2="20" y2="11"></line><line x1="4" y1="15" x2="20" y2="15"></line><line x1="4" y1="19" x2="20" y2="19"></line></svg>
-          Enabe Perception Sorting
-        </a>
-        {{ end }}
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="row">
-
-  {{ range .Records}}
-
-  <div class="col-sm-6 col-lg-4">
-    <div class="card card-sm" style="position: relative">
-      <a href="/screenshots/{{ .Filename }}" class="d-block">
-        <img loading="lazy" src="/screenshots/{{ .Filename }}" 
-             onerror="this.onerror=null; this.src='/assets/img/blank.png'" class="card-img-top">
-      </a>
-      <div style="position: absolute; top: 2px; right: 4px;"><a href="{{ .URL }}" target="_blank" class="btn btn-dark btn-sm"><span><svg class="w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122"></path></svg> Open</span></a></div>
-      <div class="card-body">
-        <div class="d-flex align-items-center">
-          <div class="lh-sm">
-            <div><a href="{{ .URL }}">{{ .URL }}</a></div>
-            <div class="text-muted">{{ .Title }}</div>
+              </div>
+            </form>
           </div>
-          <div class="ml-auto">
-            <a href="/details?id={{ .ID }}" class="btn btn-light btn-sm">
-              View
+          {{ if .Ordered }}
+            <a href="/?perception_sort=false&limit={{ .Limit }}&page={{ .Page }}" class="btn btn-primary">
+              <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-md" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"></path><rect width="6" height="6" x="14" y="5" rx="1"></rect><line x1="4" y1="7" x2="10" y2="7"></line><line x1="4" y1="11" x2="10" y2="11"></line><line x1="4" y1="15" x2="20" y2="15"></line><line x1="4" y1="19" x2="20" y2="19"></line></svg>
+              Disable Perception Sorting
             </a>
-          </div>
+          {{ else }}
+            <a href="/?perception_sort=true&limit={{ .Limit }}&page={{ .Page }}" class="btn btn-primary">
+              <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-md" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"></path><rect width="6" height="6" x="4" y="5" rx="1"></rect><line x1="14" y1="7" x2="20" y2="7"></line><line x1="14" y1="11" x2="20" y2="11"></line><line x1="4" y1="15" x2="20" y2="15"></line><line x1="4" y1="19" x2="20" y2="19"></line></svg>
+              Enabe Perception Sorting
+            </a>
+          {{ end }}
         </div>
       </div>
     </div>
   </div>
 
-  {{ end }}
+  <div class="row">
 
-</div>
-<div class="d-flex">
-  <ul class="pagination ml-auto">
-    <li class="page-item {{ if le .Page 1 }}disabled{{ end }}">
-      <a class="page-link" href="/?{{ if .Ordered }}perception_sort=true&{{ end }}limit={{ .Limit }}&page={{ .PrevPage }}" tabindex="-1">
-        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><polyline points="15 6 9 12 15 18" /></svg>
-        prev
-      </a>
-    </li>
-    {{ range $p := .PrevPageRange }}
-      <li class="page-item">
-        <a class="page-link" href="/?{{ if $.Ordered }}perception_sort=true&{{ end }}limit={{ $.Limit }}&page={{ $p }}">{{ $p }}</a>
-      </li>
+    {{ $length := len .Records }} {{ if eq $length 0 }}
+
+      <div class="container-xl d-flex flex-column justify-content-center">
+        <div class="empty">
+          <p class="empty-title h3">No results found</p>
+          <p class="empty-subtitle text-muted">
+            Double check that your report server can see the database.
+            Check out the <kbd>--db-path</kbd> flag for more information.
+          </p>
+        </div>
+      </div>
+
+    {{ else }}
+
+      {{ range .Records}}
+
+        <div class="col-sm-6 col-lg-4">
+          <div class="card card-sm">
+            <a href="/screenshots/{{ .Filename }}" target="_blank" class="d-block">
+              <img loading="lazy" src="/screenshots/{{ .Filename }}"
+                   onerror="this.onerror=null; this.src='/assets/img/blank.png'" class="card-img-top">
+            </a>
+            <div class="card-body">
+              <div class="d-flex align-items-center">
+                <div class="lh-sm">
+                  <div>
+                    <a href="{{ .URL }}" target="_blank">{{ .URL }}</a>
+                  </div>
+                  <div class="text-muted">{{ .Title }}</div>
+                </div>
+                <div class="ml-auto">
+                  <a href="/details?id={{ .ID }}" class="btn btn-light btn-sm">
+                    View
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      {{ end }}
+
     {{ end }}
 
-    <li class="page-item active"><a class="page-link" href="#">{{ .Page }}</a></li>
-
-    {{ range $p := .NextPageRange }}
-      <li class="page-item">
-        <a class="page-link" href="/?{{ if $.Ordered }}perception_sort=true&{{ end }}limit={{ $.Limit }}&page={{ $p }}">{{ $p }}</a>
+  </div>
+  <div class="d-flex">
+    <ul class="pagination ml-auto">
+      <li class="page-item {{ if le .Page 1 }}disabled{{ end }}">
+        <a class="page-link" href="/?{{ if .Ordered }}perception_sort=true&{{ end }}limit={{ .Limit }}&page={{ .PrevPage }}" tabindex="-1">
+          <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><polyline points="15 6 9 12 15 18" /></svg>
+          prev
+        </a>
       </li>
-    {{ end }}
-    <li class="page-item">
-      <a class="page-link" href="/?{{ if .Ordered }}perception_sort=true&{{ end }}limit={{ .Limit }}&page={{ .NextPage }}">
-        next <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><polyline points="9 6 15 12 9 18" /></svg>
-      </a>
-    </li>
-  </ul>
-</div>
-{{ template "footer" }}
+      {{ range $p := .PrevPageRange }}
+        <li class="page-item">
+          <a class="page-link" href="/?{{ if $.Ordered }}perception_sort=true&{{ end }}limit={{ $.Limit }}&page={{ $p }}">{{ $p }}</a>
+        </li>
+      {{ end }}
+
+      <li class="page-item active"><a class="page-link" href="#">{{ .Page }}</a></li>
+
+      {{ range $p := .NextPageRange }}
+        <li class="page-item">
+          <a class="page-link" href="/?{{ if $.Ordered }}perception_sort=true&{{ end }}limit={{ $.Limit }}&page={{ $p }}">{{ $p }}</a>
+        </li>
+      {{ end }}
+      <li class="page-item">
+        <a class="page-link" href="/?{{ if .Ordered }}perception_sort=true&{{ end }}limit={{ .Limit }}&page={{ .NextPage }}">
+          next <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><polyline points="9 6 15 12 9 18" /></svg>
+        </a>
+      </li>
+    </ul>
+  </div>
+  {{ template "footer" }}
 {{ end }}
