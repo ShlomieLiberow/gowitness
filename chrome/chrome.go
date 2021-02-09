@@ -155,11 +155,17 @@ func (chrome *Chrome) Screenshot(url *url.URL) ([]byte, error) {
 	// quality compression quality from range [0..100] (jpeg only).
 	quality := int64(50)
 
+	// create context
+	actx, acancel := chromedp.NewExecAllocator(context.Background(), options...)
+	ctx, cancel := chromedp.NewContext(actx)
+	defer acancel()
+	defer cancel()
+
 	t := chromedp.Tasks{
 		chromedp.Navigate(url.String()),
 		chromedp.WaitNotPresent(CloudflareSel, chromedp.ByQuery), // cross cloudflare DDos protecting page
 		chromedp.WaitReady("body", chromedp.ByQuery),
-		chromedp.Sleep(1 * time.Second),
+		chromedp.Sleep(2 * time.Second),
 		chromedp.ActionFunc(func(ctx context.Context) error {
 
 			// get full html
@@ -202,16 +208,14 @@ func (chrome *Chrome) Screenshot(url *url.URL) ([]byte, error) {
 					Scale:  1,
 				}).Do(ctx)
 			if err != nil {
+				{
+					return err
+				}
 				return err
 			}
 			return nil
 		}),
 	}
-	// create context
-	actx, acancel := chromedp.NewExecAllocator(context.Background(), options...)
-	ctx, cancel := chromedp.NewContext(actx)
-	defer acancel()
-	defer cancel()
 
 	if ctx == nil {
 		log.Println("ctx is null")
