@@ -25,6 +25,7 @@ type Chrome struct {
 	ResolutionY int
 	UserAgent   string
 	Timeout     int64
+	Delay       int
 	FullPage    bool
 	ChromePath  string
 	Proxy       string
@@ -114,6 +115,7 @@ func (chrome *Chrome) StorePreflight(url *url.URL, db *gorm.DB, resp *http.Respo
 				SubjectCommonName:  cert.Subject.CommonName,
 				IssuerCommonName:   cert.Issuer.CommonName,
 				SignatureAlgorithm: cert.SignatureAlgorithm.String(),
+				PubkeyAlgorithm:    cert.PublicKeyAlgorithm.String(),
 			}
 
 			for _, name := range cert.DNSNames {
@@ -161,11 +163,24 @@ func (chrome *Chrome) Screenshot(url *url.URL) ([]byte, error) {
 	defer acancel()
 	defer cancel()
 
+	// squash JavaScript dialog boxes such as alert();
+	chromedp.ListenTarget(ctx, func(ev interface{}) {
+		if _, ok := ev.(*page.EventJavascriptDialogOpening); ok {
+			go func() {
+				if err := chromedp.Run(ctx,
+					page.HandleJavaScriptDialog(true),
+				); err != nil {
+					panic(err)
+				}
+			}()
+		}
+	})
+
 	t := chromedp.Tasks{
 		chromedp.Navigate(url.String()),
 		chromedp.WaitNotPresent(CloudflareSel, chromedp.ByQuery), // cross cloudflare DDos protecting page
 		chromedp.WaitReady("body", chromedp.ByQuery),
-		chromedp.Sleep(2 * time.Second),
+		chromedp.Sleep(time.Duration(chrome.Delay) * time.Second),
 		chromedp.ActionFunc(func(ctx context.Context) error {
 
 			// get full html
