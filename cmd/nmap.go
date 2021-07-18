@@ -77,7 +77,7 @@ $ gowitness nmap --nmap-file nmap.xml -s -n http`,
 
 		// process!
 		for _, target := range targets {
-			u, err := url.ParseRequestURI(target)
+			u, err := url.Parse(target)
 			if err != nil {
 				log.Warn().Str("url", u.String()).Msg("skipping invalid url")
 				continue
@@ -170,16 +170,12 @@ func getNmapURLs() (urls []string, err error) {
 				// add the hostnames if the option has been set
 				if options.NmapScanHostanmes {
 					for _, hn := range host.Hostnames {
-						for _, r := range buildURI(hn.Name, port.PortId) {
-							urls = append(urls, r)
-						}
+						urls = append(urls, buildURI(hn.Name, port.PortId)...)
 					}
 				}
 
 				// process the port successfully
-				for _, r := range buildURI(address.Addr, port.PortId) {
-					urls = append(urls, r)
-				}
+				urls = append(urls, buildURI(address.Addr, port.PortId)...)
 			}
 		}
 	}

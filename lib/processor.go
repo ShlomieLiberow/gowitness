@@ -29,8 +29,9 @@ type Processor struct {
 	fn string
 	fp string
 	// preflight response
-	response *http.Response
-	title    string
+	response     *http.Response
+	title        string
+	technologies []string
 	// persistence id
 	urlid uint
 	// screenshot
@@ -88,7 +89,7 @@ func (p *Processor) init() {
 // preflight invokes the Chrome preflight helper
 func (p *Processor) preflight() (err error) {
 	p.Logger.Debug().Str("url", p.URL.String()).Msg("preflighting")
-	p.response, p.title, err = p.Chrome.Preflight(p.URL)
+	p.response, p.title, p.technologies, err = p.Chrome.Preflight(p.URL)
 	if err != nil {
 		return
 	}
@@ -107,12 +108,13 @@ func (p *Processor) preflight() (err error) {
 
 // persistPreflight dispatches the StorePreflight function
 func (p *Processor) persistPreflight() (err error) {
+
 	if p.Db == nil {
 		return
 	}
 
 	p.Logger.Debug().Str("url", p.URL.String()).Msg("storing preflight data")
-	if p.urlid, err = p.Chrome.StorePreflight(p.URL, p.Db, p.response, p.title, p.fn); err != nil {
+	if p.urlid, err = p.Chrome.StorePreflight(p.URL, p.Db, p.response, p.title, p.technologies, p.fn); err != nil {
 		return
 	}
 
@@ -134,6 +136,11 @@ func (p *Processor) takeScreenshot() (err error) {
 
 // storePerceptionHash calculates and stores a perception hash
 func (p *Processor) storePerceptionHash() (err error) {
+
+	if p.Db == nil {
+		return
+	}
+
 	p.Logger.Debug().Str("url", p.URL.String()).Msg("calculating perception hash")
 	img, err := png.Decode(bytes.NewReader(*p.screenshot))
 	if err != nil {

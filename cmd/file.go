@@ -15,8 +15,10 @@ import (
 var fileCmd = &cobra.Command{
 	Use:   "file [input]",
 	Short: "screenshot URLs sourced from a file or stdin",
-	Long: `Screenshot URLs sourced from a file or stdin. URLs in the source
-file should be newline separated. Invalid URLs are simply logged and ignored.`,
+	Long: `Screenshot URLs sourced from a file or stdin.
+
+URLs in the source file should be newline separated. Invalid URLs are simply
+logged and ignored.`,
 	Example: `$ gowitness file -f ~/Desktop/urls
 $ gowitness file -f urls.txt --threads 2
 $ cat urls.txt | gowitness file -f -
@@ -120,7 +122,7 @@ func getUrls(target string) (c []*url.URL) {
 
 	// if there already is a protocol, just parse and add that
 	if strings.HasPrefix(target, "http") {
-		u, err := url.ParseRequestURI(target)
+		u, err := url.Parse(target)
 		if err == nil {
 			c = append(c, u)
 		}
@@ -129,14 +131,14 @@ func getUrls(target string) (c []*url.URL) {
 	}
 
 	if !strings.HasPrefix(target, "http://") && !options.NoHTTP {
-		u, err := url.ParseRequestURI("http://" + target)
+		u, err := url.Parse("http://" + target)
 		if err == nil {
 			c = append(c, u)
 		}
 	}
 
 	if !strings.HasPrefix(target, "https://") && !options.NoHTTPS {
-		u, err := url.ParseRequestURI("https://" + target)
+		u, err := url.Parse("https://" + target)
 		if err == nil {
 			c = append(c, u)
 		}

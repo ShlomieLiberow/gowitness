@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"github.com/chromedp/cdproto/dom"
+	"github.com/chromedp/cdproto/emulation"
 	"log"
 	"math"
 	"net/http"
@@ -11,7 +12,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/chromedp/cdproto/emulation"
 	"github.com/chromedp/cdproto/page"
 	"github.com/chromedp/chromedp"
 	"github.com/sensepost/gowitness/storage"
@@ -41,7 +41,7 @@ func NewChrome() *Chrome {
 }
 
 // Preflight will preflight a url
-func (chrome *Chrome) Preflight(url *url.URL) (resp *http.Response, title string, err error) {
+func (chrome *Chrome) Preflight(url *url.URL) (resp *http.Response, title string, technologies []string, err error) {
 	// purposefully ignore bad certs
 	transport := &http.Transport{
 		TLSClientConfig:   &tls.Config{InsecureSkipVerify: true},
@@ -50,8 +50,8 @@ func (chrome *Chrome) Preflight(url *url.URL) (resp *http.Response, title string
 	if chrome.Proxy != "" {
 		var erri error
 		proxyURL, erri := url.Parse(chrome.Proxy)
-		if err != nil {
-			return nil, "", erri
+		if erri != nil {
+			return nil, "", nil, erri
 		}
 		transport.Proxy = http.ProxyURL(proxyURL)
 	}
@@ -79,12 +79,13 @@ func (chrome *Chrome) Preflight(url *url.URL) (resp *http.Response, title string
 
 	defer resp.Body.Close()
 	title, _ = GetHTMLTitle(resp.Body)
+	technologies, _ = GetTechnologies(resp)
 
 	return
 }
 
 // StorePreflight will store preflight info to a DB
-func (chrome *Chrome) StorePreflight(url *url.URL, db *gorm.DB, resp *http.Response, title string, filename string) (uint, error) {
+func (chrome *Chrome) StorePreflight(url *url.URL, db *gorm.DB, resp *http.Response, title string, technologies []string, filename string) (uint, error) {
 
 	record := &storage.URL{
 		URL:            url.String(),
@@ -101,6 +102,10 @@ func (chrome *Chrome) StorePreflight(url *url.URL, db *gorm.DB, resp *http.Respo
 	for k, v := range resp.Header {
 		hv := strings.Join(v, ", ")
 		record.AddHeader(k, hv)
+	}
+
+	for _, v := range technologies {
+		record.AddTechnologie(v)
 	}
 
 	// get TLS info, if any

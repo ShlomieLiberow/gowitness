@@ -2,8 +2,11 @@ package chrome
 
 import (
 	"io"
+	"io/ioutil"
+	"net/http"
 	"strings"
 
+	wappalyzer "github.com/projectdiscovery/wappalyzergo"
 	"golang.org/x/net/html"
 )
 
@@ -43,4 +46,29 @@ func GetHTMLTitle(r io.Reader) (string, bool) {
 	}
 
 	return traverse(doc)
+}
+
+// GetTechnologies uses wapalyzer signatures to return an array
+// of technologies that are in use by the remote site.
+func GetTechnologies(resp *http.Response) ([]string, error) {
+
+	var technologies []string
+
+	data, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return technologies, err
+	}
+
+	wappalyzerClient, err := wappalyzer.New()
+	if err != nil {
+		return technologies, err
+	}
+
+	fingerprints := wappalyzerClient.Fingerprint(resp.Header, data)
+
+	for match := range fingerprints {
+		technologies = append(technologies, match)
+	}
+
+	return technologies, nil
 }

@@ -19,6 +19,7 @@ var scanCmd = &cobra.Command{
 	Use:   "scan",
 	Short: "Scan a CIDR range and take screenshots along the way",
 	Long: `Scans a CIDR range and takes screenshots along the way.
+
 This command takes a CIDR, ports and flag arguments to specify wether
 it is nessesary to connect via HTTP and or HTTPS to urls. The
 combination of these flags are used to generate permutations that
@@ -80,7 +81,7 @@ $ gowitness --log-level debug scan --threads 20 --ports 80,443,8080 --no-http --
 
 		// process!
 		for _, target := range targets {
-			u, err := url.ParseRequestURI(target)
+			u, err := url.Parse(target)
 			if err != nil {
 				log.Warn().Str("url", u.String()).Msg("skipping invalid url")
 				continue
@@ -157,9 +158,7 @@ func getScanPorts() ([]int, error) {
 func getScanCidrIps() (ips []string, err error) {
 
 	var cidrs []string
-	for _, cidr := range options.ScanCidr {
-		cidrs = append(cidrs, cidr)
-	}
+	cidrs = append(cidrs, options.ScanCidr...)
 
 	if options.ScanCidrFile != "" {
 		file, err := os.Open(options.ScanCidrFile)
