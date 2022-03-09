@@ -5,16 +5,13 @@ import (
 	"context"
 	"crypto/tls"
 	"io"
-	"github.com/chromedp/cdproto/dom"
-	"github.com/chromedp/cdproto/emulation"
-	"log"
-	"math"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
 
 	"github.com/chromedp/cdproto/page"
+	"github.com/chromedp/cdproto/network"
 	"github.com/chromedp/chromedp"
 	"github.com/sensepost/gowitness/storage"
 	"gorm.io/gorm"
@@ -180,17 +177,12 @@ func (chrome *Chrome) Screenshot(url *url.URL) ([]byte, error) {
 		options = append(options, chromedp.ProxyServer(chrome.Proxy))
 	}
 
-	// straight from: https://github.com/chromedp/examples/blob/255873ca0d76b00e0af8a951a689df3eb4f224c3/screenshot/main.go#L54
-	var buf []byte
-	html := ""
-	// quality compression quality from range [0..100] (jpeg only).
-	quality := int64(50)
-
-	// create context
 	actx, acancel := chromedp.NewExecAllocator(context.Background(), options...)
 	ctx, cancel := chromedp.NewContext(actx)
 	defer acancel()
 	defer cancel()
+
+	var buf []byte
 
 	// squash JavaScript dialog boxes such as alert();
 	chromedp.ListenTarget(ctx, func(ev interface{}) {
@@ -205,73 +197,56 @@ func (chrome *Chrome) Screenshot(url *url.URL) ([]byte, error) {
 		}
 	})
 
-	t := chromedp.Tasks{
-		chromedp.Navigate(url.String()),
-		chromedp.WaitNotPresent(CloudflareSel, chromedp.ByQuery), // cross cloudflare DDos protecting page
-		chromedp.WaitReady("body", chromedp.ByQuery),
-		chromedp.Sleep(time.Duration(chrome.Delay) * time.Second),
-		chromedp.ActionFunc(func(ctx context.Context) error {
+	if chrome.FullPage {
+		// straight from: https://github.com/chromedp/examples/blob/849108f7da9f743bcdaef449699ed57cb4053379/screenshot/main.go
 
-			// get full html
-			node, err := dom.GetDocument().Do(ctx)
-			if err != nil {
-				return err
+		// additional headers
+		if len(chrome.HeadersMap) > 0 {
+			if err := chromedp.Run(ctx, chromedp.Tasks{
+				network.Enable(),
+				network.SetExtraHTTPHeaders(network.Headers(chrome.HeadersMap)),
+				chromedp.Navigate(url.String()),
+				chromedp.WaitNotPresent(CloudflareSel, chromedp.ByQuery), // cross cloudflare DDos protecting page
+				chromedp.WaitReady("body", chromedp.ByQuery),
+				chromedp.Sleep(time.Duration(chrome.Delay) * time.Second),
+
+				chromedp.FullScreenshot(&buf, 100),
+			}); err != nil {
+				return nil, err
 			}
-			html, err = dom.GetOuterHTML().WithNodeID(node.NodeID).Do(ctx)
-			if err != nil {
-				return err
+		} else {
+			if err := chromedp.Run(ctx, chromedp.Tasks{
+				chromedp.Navigate(url.String()),
+				chromedp.Sleep(time.Duration(chrome.Delay) * time.Second),
+				chromedp.FullScreenshot(&buf, 100),
+			}); err != nil {
+				return nil, err
 			}
+		}
 
-			// get layout metrics
-			_, _, contentSize, err := page.GetLayoutMetrics().Do(ctx)
-			if err != nil {
-				return err
+	} else {
+		// normal viewport screenshot
+
+		// additional headers
+		if len(chrome.HeadersMap) > 0 {
+			if err := chromedp.Run(ctx, chromedp.Tasks{
+				network.Enable(),
+				network.SetExtraHTTPHeaders(network.Headers(chrome.HeadersMap)),
+				chromedp.Navigate(url.String()),
+				chromedp.Sleep(time.Duration(chrome.Delay) * time.Second),
+				chromedp.CaptureScreenshot(&buf),
+			}); err != nil {
+				return nil, err
 			}
-
-			width, height := int64(math.Ceil(contentSize.Width)), int64(math.Ceil(contentSize.Height))
-
-			// force viewport emulation
-			err = emulation.SetDeviceMetricsOverride(width, height, 1, false).
-				WithScreenOrientation(&emulation.ScreenOrientation{
-					Type:  emulation.OrientationTypePortraitPrimary,
-					Angle: 0,
-				}).
-				Do(ctx)
-			if err != nil {
-				return err
+		} else {
+			if err := chromedp.Run(ctx, chromedp.Tasks{
+				chromedp.Navigate(url.String()),
+				chromedp.Sleep(time.Duration(chrome.Delay) * time.Second),
+				chromedp.CaptureScreenshot(&buf),
+			}); err != nil {
+				return nil, err
 			}
-
-			// capture screenshot
-			buf, err = page.CaptureScreenshot().
-				WithQuality(quality).
-				WithClip(&page.Viewport{
-					X:      contentSize.X,
-					Y:      contentSize.Y,
-					Width:  contentSize.Width,
-					Height: contentSize.Height,
-					Scale:  1,
-				}).Do(ctx)
-			if err != nil {
-				{
-					return err
-				}
-				return err
-			}
-			return nil
-		}),
-	}
-
-	if ctx == nil {
-		log.Println("ctx is null")
-	}
-
-	// force max timeout for retrieving and processing the data
-	ctx, cancel = context.WithTimeout(ctx, 10*time.Second)
-	defer cancel()
-	// run
-	if err := chromedp.Run(ctx, t); err != nil {
-		log.Println("chromedp.Run")
-		return nil, err
+		}
 	}
 
 	return buf, nil

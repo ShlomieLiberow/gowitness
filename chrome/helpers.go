@@ -2,11 +2,8 @@ package chrome
 
 import (
 	"io"
-	"io/ioutil"
 	"net/http"
 	"strings"
-
-	wappalyzer "github.com/projectdiscovery/wappalyzergo"
 	"golang.org/x/net/html"
 )
 
