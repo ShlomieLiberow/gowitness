@@ -1,8 +1,10 @@
 package chrome
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
+	"io"
 	"github.com/chromedp/cdproto/dom"
 	"github.com/chromedp/cdproto/emulation"
 	"log"
@@ -16,6 +18,7 @@ import (
 	"github.com/chromedp/chromedp"
 	"github.com/sensepost/gowitness/storage"
 	"gorm.io/gorm"
+	wappalyzer "github.com/projectdiscovery/wappalyzergo"
 )
 
 // Chrome contains information about a Google Chrome
@@ -29,6 +32,16 @@ type Chrome struct {
 	FullPage    bool
 	ChromePath  string
 	Proxy       string
+	Headers     []string
+	HeadersMap  map[string]interface{}
+}
+
+var wappalyzerClient *wappalyzer.Wappalyze
+
+func InitWappalyzer() error {
+	var err error
+	wappalyzerClient, err = wappalyzer.New()
+	return err
 }
 
 const (
@@ -42,11 +55,13 @@ func NewChrome() *Chrome {
 
 // Preflight will preflight a url
 func (chrome *Chrome) Preflight(url *url.URL) (resp *http.Response, title string, technologies []string, err error) {
+
 	// purposefully ignore bad certs
 	transport := &http.Transport{
 		TLSClientConfig:   &tls.Config{InsecureSkipVerify: true},
 		DisableKeepAlives: true,
 	}
+
 	if chrome.Proxy != "" {
 		var erri error
 		proxyURL, erri := url.Parse(chrome.Proxy)
@@ -66,6 +81,12 @@ func (chrome *Chrome) Preflight(url *url.URL) (resp *http.Response, title string
 		return
 	}
 	req.Header.Set("User-Agent", chrome.UserAgent)
+
+	// set the preflight headers (type assertion for value)
+	for k, v := range chrome.HeadersMap {
+		req.Header.Set(k, v.(string))
+	}
+
 	req.Close = true
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(chrome.Timeout)*time.Second)
@@ -78,8 +99,11 @@ func (chrome *Chrome) Preflight(url *url.URL) (resp *http.Response, title string
 	}
 
 	defer resp.Body.Close()
-	title, _ = GetHTMLTitle(resp.Body)
-	technologies, _ = GetTechnologies(resp)
+
+	body, _ := io.ReadAll(resp.Body)
+
+	title, _ = GetHTMLTitle(bytes.NewReader(body))
+	technologies = GetTechnologies(resp.Header, body)
 
 	return
 }
@@ -251,4 +275,27 @@ func (chrome *Chrome) Screenshot(url *url.URL) ([]byte, error) {
 	}
 
 	return buf, nil
+}
+
+// initalize the headers Map. we do this given the format chromedp wants
+// Ref:
+// 	https://github.com/chromedp/examples/blob/master/headers/main.go
+func (chrome *Chrome) PrepareHeaderMap() {
+
+	if len(chrome.Headers) <= 0 {
+		return
+	}
+
+	// initialize the map
+	chrome.HeadersMap = make(map[string]interface{})
+
+	// split each header string and append to the map
+	for _, header := range chrome.Headers {
+
+		headerSlice := strings.SplitN(header, ":", 2)
+		// add header to the map
+		if len(headerSlice) == 2 {
+			chrome.HeadersMap[headerSlice[0]] = headerSlice[1]
+		}
+	}
 }

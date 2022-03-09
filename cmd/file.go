@@ -44,6 +44,9 @@ $ gowitness file -f <( shuf domains ) --no-http`,
 			log.Fatal().Err(err).Msg("failed to prepare the screenshot path")
 		}
 
+		// parse headers
+		chrm.PrepareHeaderMap()
+
 		for scanner.Scan() {
 			candidate := scanner.Text()
 			if candidate == "" {
@@ -86,17 +89,6 @@ func init() {
 	fileCmd.Flags().BoolVar(&options.NoHTTP, "no-http", false, "do not prefix http:// where missing")
 
 	cobra.MarkFlagRequired(fileCmd.Flags(), "file")
-}
-
-// getInput determines what the file input should be
-// without any file argument we will assume stdin with -
-func getInput(a []string) (input string) {
-	if len(a) <= 0 {
-		input = "-"
-	} else {
-		input = a[0]
-	}
-	return
 }
 
 // getScanner prepares a bufio.Scanner to read from either

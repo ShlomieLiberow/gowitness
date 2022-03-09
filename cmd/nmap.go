@@ -65,6 +65,9 @@ $ gowitness nmap --nmap-file nmap.xml -s -n http`,
 			log.Fatal().Err(err).Msg("failed to prepare the screenshot path")
 		}
 
+		// parse headers
+		chrm.PrepareHeaderMap()
+
 		// prepare db
 		db, err := db.Get()
 		if err != nil {

@@ -19,7 +19,7 @@
   <div class="col-sm-6 col-lg-4">
     <div class="card card-sm">
       <a href="/screenshots/{{ .Filename }}" target="_blank" class="d-block">
-        <img loading="lazy" src="/screenshots/{{ .Filename }}"
+        <img loading="lazy" src="/screenshots/{{ .Filename }}" 
              onerror="this.onerror=null; this.src='/assets/img/blank.png'" class="card-img-top">
       </a>
       <div class="card-body">
@@ -27,6 +27,11 @@
           <div class="lh-sm">
             <div>{{ .URL }}</div>
             <div class="text-muted">{{ .Title }}</div>
+            <div>              
+              {{ range .Technologies }}
+              <span class="badge bg-blue">{{ .Value}}</span>
+              {{ end }}
+            </div>
           </div>
           <div class="ml-auto">
             <a href="#" class="text-muted">
@@ -47,10 +52,14 @@
             <h3 class="card-title">Summary</h3>
           </div>
           <div class="card-body">
-            <p><kbd>{{ .URL }}</kbd> responded with <kbd>{{ .ResponseReason}}</kbd></p>
-            <div>
-              <a href="{{ .URL }}" target="_blank" class="btn btn-light">Open URL</a>
-            </div>
+            <p>
+              <kbd>{{ .URL }}</kbd> responded with <kbd>{{ .ResponseReason}}</kbd>
+              <span>
+                <a href="{{ .URL }}" target="_blank" class="btn-sm btn-light float-right">
+                  Open URL
+                </a>
+              </span>
+            </p>
           </div>
         </div>
       </div>
