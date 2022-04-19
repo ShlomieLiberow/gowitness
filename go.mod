@@ -1,6 +1,6 @@
 module github.com/sensepost/gowitness
 
-go 1.15
+go 1.16
 
 require (
 	github.com/chromedp/cdproto v0.0.0-20220321060548-7bc2623472b3
